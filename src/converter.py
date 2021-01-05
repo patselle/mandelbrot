@@ -6,6 +6,7 @@ import argparse
 import cv2
 import numpy as np
 import pandas as pd
+from PIL import Image
 
 import pywt
 
@@ -36,9 +37,10 @@ class writeable_dir(argparse.Action):
 
 
 class converter:
-    def __init__(self, input_root, output_root, rgb2gray, wavelet, window_size, x_step, y_step, takeABS, output_type) -> None:
+    def __init__(self, input_root, output_root, tmp_root, rgb2gray, wavelet, window_size, x_step, y_step, takeABS, output_type) -> None:
         self.__input_root = input_root
         self.__output_root = output_root
+        self.__tmp_root = tmp_root
         self.__rgb2gray: bool = rgb2gray
         self.__window_size = window_size # (6,8)
         self.__x_step: int = x_step
@@ -183,6 +185,12 @@ class converter:
             # do patchy analysis
             heatmap = self.__create_heatmap(HH_coeffs)
 
+            # save temporary heatmap files
+            if self.__tmp_root:
+                print(f'saving tmp: {f}')
+                im = Image.fromarray(heatmap)
+                im.save(os.path.join(self.__tmp_root, f))
+
             # compute RoI and extract coordiates
             self.__get_RoI(heatmap)
 
@@ -197,6 +205,7 @@ def get_argument_parser():
 
     parser.add_argument('--input_root', '-i', action=readable_dir, default=os.path.join(os.getcwd(), 'input'), help='Path to root dir of source files')
     parser.add_argument('--output_root', '-o', action=writeable_dir, default=os.path.join(os.getcwd(), 'output'), help='Path to root dir of output files')
+    parser.add_argument('--tmp_root', '-p', action=writeable_dir, default=None, help='Path to root dir of tmp files')
     parser.add_argument('--rgb2gray', '-t',type=bool, default=False, help='Convert RGB image to gray scale image')
     parser.add_argument('--wavelet', '-w',type=str, default='bior1.3', help='Mother wavelet, default bior1.3, maybe try haar')
     parser.add_argument('--window_size', '-s',type=str, nargs='+', default=(6,8), help='Patch size, default (6,8)')
